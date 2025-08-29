@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ScrollingText } from '@/components/ScrollingText';
 import { PulsingOrb } from '@/components/PulsingOrb';
 import { TrialForm } from '@/components/TrialForm';
+import { StarField } from '@/components/StarField';
 import heroImage from '@/assets/hero-cosmic.jpg';
 
 const mentalHealthTexts = [
@@ -23,6 +24,7 @@ const Index = () => {
 
   return (
     <div className="cosmic-background min-h-screen">
+      <StarField />
       <PulsingOrb />
       <ScrollingText texts={mentalHealthTexts} />
       
