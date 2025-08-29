@@ -61,6 +61,13 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// Mystical Colors
+				mystical: {
+					purple: 'hsl(var(--mystical-purple))',
+					teal: 'hsl(var(--mystical-teal))',
+					blue: 'hsl(var(--mystical-blue))',
+					glow: 'hsl(var(--cosmic-glow))'
 				}
 			},
 			borderRadius: {
