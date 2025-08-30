@@ -8,7 +8,7 @@ interface ScrollingTextProps {
 export const ScrollingText = ({ texts, className = "" }: ScrollingTextProps) => {
   const [visibleTexts, setVisibleTexts] = useState<Set<number>>(new Set());
 
-  useEffect(() => {
+ useEffect(() => {
     const handleScroll = () => {
       const scrollY = window.scrollY;
       const windowHeight = window.innerHeight;
@@ -19,8 +19,9 @@ export const ScrollingText = ({ texts, className = "" }: ScrollingTextProps) => 
       const newVisibleTexts = new Set<number>();
       
       texts.forEach((_, index) => {
-        const showAt = (index + 1) / (texts.length + 1);
-        const hideAt = (index + 2) / (texts.length + 1);
+        // Increase spacing between texts to prevent overlap
+        const showAt = (index * 1.5 + 0.5) / (texts.length * 1.5 + 1);
+        const hideAt = ((index + 0.5) * 1.5 + 0.5) / (texts.length * 1.5 + 1);
         
         if (scrollProgress >= showAt && scrollProgress < hideAt) {
           newVisibleTexts.add(index);
@@ -41,12 +42,12 @@ export const ScrollingText = ({ texts, className = "" }: ScrollingTextProps) => 
       {texts.map((text, index) => {
         const isVisible = visibleTexts.has(index);
         const positions = [
-          'top-1/4 left-1/4',
-          'top-1/3 right-1/4',
           'top-1/2 left-1/3',
-          'top-2/3 right-1/3',
-          'top-3/4 left-1/2',
-          'top-1/6 right-1/2',
+          'top-1/4 right-1/3',
+          'top-1/2 left-1/3',
+          'top-1/4 right-1/3',
+          'top-1/4 left-1/2',
+          'top-1/2 right-1/2',
         ];
         
         return (
