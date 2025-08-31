@@ -38,7 +38,7 @@ const VoiceTalk = ({ showVoice }) => {
       formData.append("source", "echo-ai-verification");
 
       const response = await fetch(
-        "https://nox29a.app.n8n.cloud/webhook/a975ecce-4571-40be-b813-0ebe7bd294c6",
+        "https://lukasz29a.app.n8n.cloud/webhook-test/a975ecce-4571-40be-b813-0ebe7bd294c6",
         {
           method: "POST",
           body: formData,

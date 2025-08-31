@@ -78,7 +78,7 @@ export const TrialForm = () => {
     }
 
     try {
-      await fetch("https://nox29a.app.n8n.cloud/webhook/coaching-form", {
+      await fetch("https://lukasz29a.app.n8n.cloud/webhook/coaching-form", {
         method: "POST",
         body: formData,
       });

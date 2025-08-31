@@ -4,7 +4,7 @@ import { PulsingOrb } from '@/components/PulsingOrb';
 import { TrialForm } from '@/components/TrialForm';
 import { GalaxyBackground } from '@/components/StarField';
 import heroImage from '@/assets/hero-cosmic.jpg';
-import { ArrowBigRight , Headset, Mail, Layers,  } from 'lucide-react';
+import { ArrowBigRight , Headset, Mail, Layers, Smartphone  } from 'lucide-react';
 import VoiceTalk from '@/components/VoiceTalk';
 
 import { ChatInterface } from '@/components/Chat';
@@ -12,7 +12,7 @@ import { PhoneMockup } from '@/components/PhoneMockup';
 
   const sections = [
     { id: 'hero', icon: Mail },
-    { id: 'explore', icon: Layers },
+    { id: 'explore', icon: Smartphone },
     { id: 'planets', icon: Headset },
 
   ];
@@ -67,7 +67,7 @@ const handleSectionClick = (sectionId) => {
       <PulsingOrb />
       <ScrollingText texts={mentalHealthTexts} />
       
-      <div className="fixed right-8 top-3/4  transform -translate-y-1/2 z-50">
+      <div className="fixed right-8 top-3/4  transform -translate-y-1/2 z-30">
         <div className="flex flex-col space-y-4">
           {sections.map((section, index) => {
             const IconComponent = section.icon;
@@ -94,15 +94,15 @@ const handleSectionClick = (sectionId) => {
       <section className="min-h-screen flex items-center justify-center relative z-20">
         <div className="text-center px-6 max-w-4xl mx-auto">
           <div className="relative z-10">
-            <h1 className={`text-6xl md:text-8xl font-bold mb-8 transition-all duration-1000 ${
-              showEcho ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
-            }`}>
+            <h1 className={`text-6xl md:text-8xl font-bold mb-8 transition-all duration-1000 `}>
               <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent animate-pulse">
                 Echo
               </span>
             </h1>
             
-            <p className="text-xl md:text-2xl text-purple-200 mb-8 font-light">
+            <p className={`text-xl md:text-2xl text-purple-200 mb-8 font-light ${
+              showEcho ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+            }`}>
               Twój codzienny towarzysz mindfulness
             </p>
             

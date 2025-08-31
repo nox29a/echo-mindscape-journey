@@ -1,101 +1,319 @@
-import { useEffect, useState } from "react";
-export const ChatInterface = ({ showChat }) => {
+import { useEffect, useRef, useState } from "react";
 
-  const [chatMessages, setChatMessages] = useState([
-    { sender: 'bot', text: 'Cześć! Jestem Echo AI. Jak mogę Ci dziś pomóc?' },
-    { sender: 'user', text: 'Cześć! Chciałbym poznać więcej o mindfulness.' },
-    { sender: 'bot', text: 'Świetnie! Mindfulness to praktyka świadomego bycia w chwili obecnej. Czy chciałbyś spróbować krótkiej sesji medytacji?' }
-  ]);
+export const ChatInterface = ({ showChat }) => {
+  const [chatMessages, setChatMessages] = useState([]);
   const [currentMessage, setCurrentMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const inputRef = useRef(null);
+  const messagesEndRef = useRef(null);
 
-  const handleSendMessage = () => {
-    if (currentMessage.trim()) {
-      setChatMessages(prev => [...prev, { sender: 'user', text: currentMessage }]);
-      setCurrentMessage('');
-      setIsTyping(true);
-      
-      // Symulacja odpowiedzi bota
-      setTimeout(() => {
-        setIsTyping(false);
-        setChatMessages(prev => [...prev, { 
-          sender: 'bot', 
-          text: 'To świetne pytanie! Pozwól mi pomóc Ci z tym...' 
-        }]);
-      }, 1500);
+  const webhookUrl = 'https://lukasz29a.app.n8n.cloud/webhook/36e82cf4-d211-4a21-8b23-0ab2ebdeded4/chat';
+
+  const scrollToBottom = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   };
 
+  useEffect(() => {
+    scrollToBottom();
+  }, [chatMessages, isTyping]);
+
+  useEffect(() => {
+    if (showChat && inputRef.current) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }, [showChat]);
+
+  const handleSendMessage = () => {
+    if (currentMessage.trim()) {
+      const userMessage = currentMessage;
+      
+      // Dodaj wiadomość użytkownika
+      setChatMessages(prev => [...prev, { sender: 'user', text: userMessage }]);
+      setCurrentMessage('');
+      setIsTyping(true);
+
+      console.log('Wysyłanie wiadomości:', userMessage);
+
+      // Wyślij do webhooka
+      fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        mode: 'cors',
+        body: JSON.stringify({ message: userMessage })
+      })
+        .then(response => {
+          console.log('Status odpowiedzi:', response.status);
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          console.log('Otrzymana odpowiedź:', data);
+          
+          // Bezpośrednie odczytanie pola 'message' z odpowiedzi
+          let responseMessage = '';
+          
+          if (data && typeof data === 'object') {
+            // Sprawdź różne możliwe formaty odpowiedzi
+            if (data.message) {
+              responseMessage = data.message;
+            } else if (data.response && data.response.message) {
+              responseMessage = data.response.message;
+            } else if (data.data && data.data.message) {
+              responseMessage = data.data.message;
+            } else {
+              // Jeśli nie znajdziemy pola message, użyj całej odpowiedzi jako string
+              responseMessage = JSON.stringify(data);
+            }
+          } else if (typeof data === 'string') {
+            responseMessage = data;
+          } else {
+            responseMessage = 'Brak odpowiedzi od serwera';
+          }
+          
+          setChatMessages(prev => [...prev, { 
+            sender: 'echo', 
+            text: responseMessage
+          }]);
+          setIsTyping(false);
+        })
+        .catch(error => {
+          console.error('Błąd podczas komunikacji:', error);
+          setChatMessages(prev => [...prev, { 
+            sender: 'echo', 
+            text: `Przepraszam, wystąpił błąd: ${error.message}. Spróbuj ponownie.` 
+          }]);
+          setIsTyping(false);
+        });
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  if (!showChat) {
+    return null;
+  }
+
   return (
-    <div className="fixed left-8 top-1/2 transform -translate-y-1/2 z-40">
-      <div className={`transition-all duration-700 ease-out ${
-        showChat 
-          ? 'opacity-100 translate-x-0 scale-100' 
-          : 'opacity-0 -translate-x-full scale-95 pointer-events-none'
-      }`}>
-        <div className="w-80 sm:w-96 bg-slate-900/95 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-emerald-400/30 shadow-2xl">
-          {/* Header */}
-          <div className="flex items-center mb-4 sm:mb-6 pb-3 sm:pb-4 border-b border-white/10">
-            <div className="w-10 sm:w-12 h-10 sm:h-12 bg-gradient-to-br from-emerald-400 to-cyan-400 rounded-full flex items-center justify-center mr-3 sm:mr-4 relative flex-shrink-0">
-              <span className="text-white font-bold text-base sm:text-lg">E</span>
-              <div className="absolute -bottom-1 -right-1 w-3 sm:w-4 h-3 sm:h-4 bg-green-400 rounded-full border-2 border-slate-900"></div>
-            </div>
-            <div className="min-w-0 flex-1">
-              <h3 className="text-white font-semibold text-base sm:text-lg truncate">Echo AI</h3>
-              <p className="text-emerald-300 text-xs sm:text-sm">Online • Gotowy do rozmowy</p>
-            </div>
+    <div 
+      style={{
+        position: 'fixed',
+        left: '32px',
+        top: '50%',
+        transform: 'translateY(-50%)',
+        zIndex: 9999,
+        pointerEvents: 'auto'
+      }}
+    >
+      {/* Używamy inline styles zamiast Tailwind */}
+      <div 
+        style={{
+          width: '384px',
+          backgroundColor: 'rgba(15, 23, 42, 0.95)',
+          backdropFilter: 'blur(12px)',
+          borderRadius: '24px',
+          padding: '24px',
+          border: '1px solid rgba(16, 185, 129, 0.3)',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          pointerEvents: 'auto'
+        }}
+      >
+        {/* Chat Header */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          marginBottom: '24px',
+          paddingBottom: '16px',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+        }}>
+          <div style={{
+            width: '48px',
+            height: '48px',
+            background: 'linear-gradient(to bottom right, #10b981, #06b6d4)',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginRight: '16px',
+            position: 'relative'
+          }}>
+            <span style={{ color: 'white', fontWeight: 'bold', fontSize: '18px' }}>E</span>
+            <div style={{
+              position: 'absolute',
+              bottom: '-4px',
+              right: '-4px',
+              width: '16px',
+              height: '16px',
+              backgroundColor: '#10b981',
+              borderRadius: '50%',
+              border: '2px solid #0f172a'
+            }}></div>
           </div>
-
-          {/* Chat Messages */}
-          <div className="h-64 sm:h-72 md:h-80 overflow-y-auto mb-3 sm:mb-4 space-y-3 sm:space-y-4 scrollbar-thin scrollbar-thumb-emerald-400/20 px-1">
-            {chatMessages.map((message, index) => (
-              <div key={index} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}>
-                <div className={`max-w-[85%] sm:max-w-xs lg:max-w-sm p-2.5 sm:p-3 rounded-xl sm:rounded-2xl ${
-                  message.sender === 'user' 
-                    ? 'bg-emerald-400/20 text-emerald-100 border border-emerald-400/30' 
-                    : 'bg-white/10 text-gray-200 border border-white/10'
-                }`}>
-                  <p className="text-xs sm:text-sm leading-relaxed break-words">{message.text}</p>
-                </div>
-              </div>
-            ))}
-            
-            {/* Typing indicator */}
-            {isTyping && (
-              <div className="flex justify-start animate-fade-in">
-                <div className="bg-white/10 text-gray-200 border border-white/10 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl max-w-xs">
-                  <div className="flex space-x-1">
-                    <div className="w-1.5 sm:w-2 h-1.5 sm:h-2 bg-emerald-400 rounded-full animate-bounce" style={{animationDelay: '0s'}}></div>
-                    <div className="w-1.5 sm:w-2 h-1.5 sm:h-2 bg-emerald-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
-                    <div className="w-1.5 sm:w-2 h-1.5 sm:h-2 bg-emerald-400 rounded-full animate-bounce" style={{animationDelay: '0.4s'}}></div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Chat Input */}
-          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
-            <input 
-              type="text" 
-              placeholder="Napisz wiadomość" 
-              value={currentMessage}
-              onChange={(e) => setCurrentMessage(e.target.value)}
-              className="flex-1 bg-white/5 border border-white/20 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base text-white placeholder-gray-400 focus:outline-none focus:border-emerald-400/50 transition-all"
-              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-            />
-            <button 
-              onClick={handleSendMessage}
-              className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-emerald-400 to-cyan-400 text-white rounded-lg sm:rounded-xl font-medium hover:from-emerald-500 hover:to-cyan-500 transition-all transform hover:scale-105 flex items-center justify-center space-x-2 text-sm sm:text-base"
-            >
-              <span>Wyślij</span>
-              <svg className="w-3 sm:w-4 h-3 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-              </svg>
-            </button>
+          <div>
+            <h3 style={{ color: 'white', fontWeight: 'bold', fontSize: '18px', margin: 0 }}>Echo AI</h3>
+            <p style={{ color: '#6ee7b7', fontSize: '14px', margin: 0 }}>Online • Gotowy do rozmowy</p>
           </div>
         </div>
+
+        {/* Chat Messages */}
+        <div 
+          style={{
+            height: '320px',
+            overflowY: 'auto',
+            marginBottom: '16px',
+            padding: '4px',
+            scrollbarWidth: 'thin',
+            scrollbarColor: 'rgba(16, 185, 129, 0.3) rgba(255, 255, 255, 0.1)'
+          }}
+        >
+          {chatMessages.map((message, index) => (
+            <div 
+              key={index} 
+              style={{
+                display: 'flex',
+                justifyContent: message.sender === 'user' ? 'flex-end' : 'flex-start',
+                marginBottom: '16px'
+              }}
+            >
+              <div style={{
+                maxWidth: '85%',
+                padding: '12px',
+                borderRadius: '16px',
+                backgroundColor: message.sender === 'user' 
+                  ? 'rgba(16, 185, 129, 0.2)' 
+                  : 'rgba(255, 255, 255, 0.1)',
+                color: message.sender === 'user' ? '#a7f3d0' : '#e5e7eb',
+                border: message.sender === 'user' 
+                  ? '1px solid rgba(16, 185, 129, 0.3)' 
+                  : '1px solid rgba(255, 255, 255, 0.1)'
+              }}>
+                <p style={{ fontSize: '14px', lineHeight: '1.5', margin: 0, wordBreak: 'break-words' }}>
+                  {message.text}
+                </p>
+              </div>
+            </div>
+          ))}
+          
+          {/* Typing Indicator */}
+          {isTyping && (
+            <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '16px' }}>
+              <div style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                color: '#e5e7eb',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                padding: '12px',
+                borderRadius: '16px',
+                maxWidth: '200px'
+              }}>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  <div style={{
+                    width: '8px',
+                    height: '8px',
+                    backgroundColor: '#10b981',
+                    borderRadius: '50%',
+                    animation: 'bounce 1.4s infinite ease-in-out',
+                    animationDelay: '0s'
+                  }}></div>
+                  <div style={{
+                    width: '8px',
+                    height: '8px',
+                    backgroundColor: '#10b981',
+                    borderRadius: '50%',
+                    animation: 'bounce 1.4s infinite ease-in-out',
+                    animationDelay: '0.2s'
+                  }}></div>
+                  <div style={{
+                    width: '8px',
+                    height: '8px',
+                    backgroundColor: '#10b981',
+                    borderRadius: '50%',
+                    animation: 'bounce 1.4s infinite ease-in-out',
+                    animationDelay: '0.4s'
+                  }}></div>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* Chat Input */}
+        <div style={{
+          display: 'flex',
+          gap: '12px',
+          pointerEvents: 'auto'
+        }}>
+          <input 
+            ref={inputRef}
+            type="text" 
+            placeholder="Napisz wiadomość" 
+            value={currentMessage}
+            onChange={(e) => setCurrentMessage(e.target.value)}
+            onKeyPress={handleKeyPress}
+            style={{
+              flex: 1,
+              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              borderRadius: '12px',
+              padding: '12px 16px',
+              fontSize: '16px',
+              color: 'white',
+              outline: 'none',
+              pointerEvents: 'auto'
+            }}
+            autoComplete="off"
+          />
+          <button 
+            onClick={handleSendMessage}
+            style={{
+              padding: '12px 24px',
+              background: 'linear-gradient(to right, #10b981, #06b6d4)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '12px',
+              fontWeight: '500',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '16px',
+              pointerEvents: 'auto',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
+            onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+          >
+            <span>Wyślij</span>
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
+          </button>
+        </div>
       </div>
+
+      <style jsx>{`
+        @keyframes bounce {
+          0%, 80%, 100% {
+            transform: scale(0);
+          } 40% {
+            transform: scale(1);
+          }
+        }
+      `}</style>
     </div>
   );
 };
