@@ -102,8 +102,9 @@ export const TrialForm = () => {
             Rozpocznij swoją podróż
           </h1>
           <p className="text-lg text-gray-300 mb-8">
-            Wypełnij formularz, aby Echo mogło lepiej Ci pomóc
+            Wypełnij formularz, a stworzymy dla Ciebie idealny plan na początek.
           </p>
+          
         </div>
 
         <div className="flex flex-col space-y-6 p-8 bg-slate-800/40 backdrop-blur-xl rounded-3xl border border-emerald-400/20 shadow-2xl">

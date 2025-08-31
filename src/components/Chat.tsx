@@ -84,7 +84,11 @@ export const ChatInterface = ({ showChat }) => {
           
           let responseMessage = '';
           
-          if (data && typeof data === 'object') {
+          // Poprawione parsowanie odpowiedzi
+          if (Array.isArray(data) && data.length > 0 && data[0].output) {
+            // Format: [{"output":"tekst odpowiedzi"}]
+            responseMessage = data[0].output;
+          } else if (data && typeof data === 'object') {
             if (data.message) {
               responseMessage = data.message;
             } else if (data.response && data.response.message) {
@@ -139,10 +143,6 @@ export const ChatInterface = ({ showChat }) => {
     console.log('Nowa sesja:', newSessionId);
   };
 
-  if (!showChat) {
-    return null;
-  }
-
   return (
     <div 
       style={{
@@ -154,7 +154,13 @@ export const ChatInterface = ({ showChat }) => {
         pointerEvents: 'auto'
       }}
     >
+      {/* Główny kontener z animacją */}
       <div 
+        className={`transition-all duration-700 ease-out ${
+          showChat 
+            ? 'opacity-100 translate-x-0 scale-100' 
+            : 'opacity-0 -translate-x-full scale-95 pointer-events-none'
+        }`}
         style={{
           width: '384px',
           backgroundColor: 'rgba(15, 23, 42, 0.95)',
@@ -199,7 +205,7 @@ export const ChatInterface = ({ showChat }) => {
             }}></div>
           </div>
           <div>
-            <h3 style={{ color: 'white', fontWeight: 'bold', fontSize: '18px', margin: 0 }}>Echo AI</h3>
+            <h3 style={{ color: 'white', fontWeight: 'bold', fontSize: '18px', margin: 0 }}>Echo</h3>
             <p style={{ color: '#6ee7b7', fontSize: '14px', margin: 0 }}>Online • Sesja aktywna</p>
           </div>
           
@@ -220,7 +226,7 @@ export const ChatInterface = ({ showChat }) => {
             }}
             title="Rozpocznij nową sesję"
           >
-            🔄
+            Reset
           </button>
         </div>
 
@@ -356,22 +362,9 @@ export const ChatInterface = ({ showChat }) => {
             onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
           >
             <span>Wyślij</span>
-            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-            </svg>
           </button>
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes bounce {
-          0%, 80%, 100% {
-            transform: scale(0);
-          } 40% {
-            transform: scale(1);
-          }
-        }
-      `}</style>
     </div>
   );
 };
