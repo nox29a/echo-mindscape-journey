@@ -4,10 +4,31 @@ export const ChatInterface = ({ showChat }) => {
   const [chatMessages, setChatMessages] = useState([]);
   const [currentMessage, setCurrentMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [sessionId, setSessionId] = useState(null);
   const inputRef = useRef(null);
   const messagesEndRef = useRef(null);
 
-  const webhookUrl = 'https://lukasz29a.app.n8n.cloud/webhook/36e82cf4-d211-4a21-8b23-0ab2ebdeded4/chat';
+  const webhookUrl = 'https://lukasz29a.app.n8n.cloud/webhook/chat';
+
+  // Generuj unikalne sessionId przy pierwszym renderowaniu
+  useEffect(() => {
+    // Sprawdź czy mamy już sessionId w localStorage
+    const savedSessionId = localStorage.getItem('chatSessionId');
+    
+    if (savedSessionId) {
+      setSessionId(savedSessionId);
+    } else {
+      // Generuj nowe sessionId
+      const newSessionId = generateSessionId();
+      localStorage.setItem('chatSessionId', newSessionId);
+      setSessionId(newSessionId);
+    }
+  }, []);
+
+  // Funkcja do generowania unikalnego sessionId
+  const generateSessionId = () => {
+    return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+  };
 
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
@@ -28,7 +49,7 @@ export const ChatInterface = ({ showChat }) => {
   }, [showChat]);
 
   const handleSendMessage = () => {
-    if (currentMessage.trim()) {
+    if (currentMessage.trim() && sessionId) {
       const userMessage = currentMessage;
       
       // Dodaj wiadomość użytkownika
@@ -36,9 +57,9 @@ export const ChatInterface = ({ showChat }) => {
       setCurrentMessage('');
       setIsTyping(true);
 
-      console.log('Wysyłanie wiadomości:', userMessage);
+      console.log('Wysyłanie wiadomości:', userMessage, 'Session ID:', sessionId);
 
-      // Wyślij do webhooka
+      // Wyślij do webhooka z sessionId
       fetch(webhookUrl, {
         method: 'POST',
         headers: {
@@ -46,7 +67,10 @@ export const ChatInterface = ({ showChat }) => {
           'Accept': 'application/json'
         },
         mode: 'cors',
-        body: JSON.stringify({ message: userMessage })
+        body: JSON.stringify({ 
+          message: userMessage,
+          sessionId: sessionId 
+        })
       })
         .then(response => {
           console.log('Status odpowiedzi:', response.status);
@@ -58,11 +82,9 @@ export const ChatInterface = ({ showChat }) => {
         .then(data => {
           console.log('Otrzymana odpowiedź:', data);
           
-          // Bezpośrednie odczytanie pola 'message' z odpowiedzi
           let responseMessage = '';
           
           if (data && typeof data === 'object') {
-            // Sprawdź różne możliwe formaty odpowiedzi
             if (data.message) {
               responseMessage = data.message;
             } else if (data.response && data.response.message) {
@@ -70,7 +92,6 @@ export const ChatInterface = ({ showChat }) => {
             } else if (data.data && data.data.message) {
               responseMessage = data.data.message;
             } else {
-              // Jeśli nie znajdziemy pola message, użyj całej odpowiedzi jako string
               responseMessage = JSON.stringify(data);
             }
           } else if (typeof data === 'string') {
@@ -93,6 +114,12 @@ export const ChatInterface = ({ showChat }) => {
           }]);
           setIsTyping(false);
         });
+    } else if (!sessionId) {
+      console.error('Brak sessionId - nie można wysłać wiadomości');
+      setChatMessages(prev => [...prev, { 
+        sender: 'echo', 
+        text: 'Błąd inicjalizacji czatu. Proszę odśwież stronę.' 
+      }]);
     }
   };
 
@@ -101,6 +128,15 @@ export const ChatInterface = ({ showChat }) => {
       e.preventDefault();
       handleSendMessage();
     }
+  };
+
+  // Funkcja do resetowania sesji (opcjonalnie)
+  const resetSession = () => {
+    const newSessionId = generateSessionId();
+    localStorage.setItem('chatSessionId', newSessionId);
+    setSessionId(newSessionId);
+    setChatMessages([]);
+    console.log('Nowa sesja:', newSessionId);
   };
 
   if (!showChat) {
@@ -118,7 +154,6 @@ export const ChatInterface = ({ showChat }) => {
         pointerEvents: 'auto'
       }}
     >
-      {/* Używamy inline styles zamiast Tailwind */}
       <div 
         style={{
           width: '384px',
@@ -131,13 +166,14 @@ export const ChatInterface = ({ showChat }) => {
           pointerEvents: 'auto'
         }}
       >
-        {/* Chat Header */}
+        {/* Chat Header z informacją o sesji */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
           marginBottom: '24px',
           paddingBottom: '16px',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+          position: 'relative'
         }}>
           <div style={{
             width: '48px',
@@ -164,8 +200,28 @@ export const ChatInterface = ({ showChat }) => {
           </div>
           <div>
             <h3 style={{ color: 'white', fontWeight: 'bold', fontSize: '18px', margin: 0 }}>Echo AI</h3>
-            <p style={{ color: '#6ee7b7', fontSize: '14px', margin: 0 }}>Online • Gotowy do rozmowy</p>
+            <p style={{ color: '#6ee7b7', fontSize: '14px', margin: 0 }}>Online • Sesja aktywna</p>
           </div>
+          
+          {/* Przycisk resetowania sesji (opcjonalnie) */}
+          <button 
+            onClick={resetSession}
+            style={{
+              position: 'absolute',
+              top: '0',
+              right: '0',
+              background: 'rgba(255, 255, 255, 0.1)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              borderRadius: '8px',
+              padding: '4px 8px',
+              color: '#e5e7eb',
+              fontSize: '12px',
+              cursor: 'pointer'
+            }}
+            title="Rozpocznij nową sesję"
+          >
+            🔄
+          </button>
         </div>
 
         {/* Chat Messages */}
@@ -207,7 +263,6 @@ export const ChatInterface = ({ showChat }) => {
             </div>
           ))}
           
-          {/* Typing Indicator */}
           {isTyping && (
             <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '16px' }}>
               <div style={{
@@ -279,14 +334,17 @@ export const ChatInterface = ({ showChat }) => {
           />
           <button 
             onClick={handleSendMessage}
+            disabled={!sessionId}
             style={{
               padding: '12px 24px',
-              background: 'linear-gradient(to right, #10b981, #06b6d4)',
+              background: sessionId 
+                ? 'linear-gradient(to right, #10b981, #06b6d4)'
+                : 'rgba(255, 255, 255, 0.1)',
               color: 'white',
               border: 'none',
               borderRadius: '12px',
               fontWeight: '500',
-              cursor: 'pointer',
+              cursor: sessionId ? 'pointer' : 'not-allowed',
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
@@ -294,7 +352,7 @@ export const ChatInterface = ({ showChat }) => {
               pointerEvents: 'auto',
               transition: 'all 0.2s'
             }}
-            onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
+            onMouseEnter={(e) => sessionId && (e.target.style.transform = 'scale(1.05)')}
             onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
           >
             <span>Wyślij</span>
