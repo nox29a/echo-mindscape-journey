@@ -103,7 +103,7 @@ const handleSectionClick = (sectionId) => {
             <p className={`text-xl md:text-2xl text-purple-200 mb-8 font-light transition-all duration-1000   ${
               showEcho ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
             }`}>
-              Twój codzienny trener mindfulness
+              Twój codzienny spokój
             </p>
             
 
